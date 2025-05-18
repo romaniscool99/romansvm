@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>RomansVM</title>
+  <style>
+    body, html { height: 100%; margin: 0; font-family: Arial, sans-serif; background: #222; color: #eee; }
+    #login, #vmContainer { max-width: 960px; margin: 40px auto; }
+    #login button {
+      background: #4cff9c;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 15px 30px;
+      font-weight: bold;
+      color: #222;
+    }
+    #vmContainer { display: none; height: 80vh; }
+    iframe { border: none; width: 100%; height: 100%; }
+    #userInfo { margin-bottom: 10px; }
+    #logoutBtn {
+      margin-top: 15px;
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="login">
+  <button id="loginBtn">Login with Google</button>
+</div>
+
+<div id="vmContainer">
+  <div id="userInfo"></div>
+  <button id="logoutBtn">Logout</button>
+  <iframe id="vmFrame"></iframe>
+</div>
+
+<script>
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loginDiv = document.getElementById('login');
+  const vmContainer = document.getElementById('vmContainer');
+  const userInfoDiv = document.getElementById('userInfo');
+  const vmFrame = document.getElementById('vmFrame');
+
+  const API_BASE = 'http://localhost:3000'; // Backend URL
+
+  async function checkLogin() {
+    const res = await fetch(`${API_BASE}/api/user`, {
+      credentials: 'include',
+    });
+    const data = await res.json();
+    if (data.user) {
+      showVM(data.user);
+    } else {
+      showLogin();
+    }
+  }
+
+  function showLogin() {
+    loginDiv.style.display = 'block';
+    vmContainer.style.display = 'none';
+  }
+
+  async function showVM(user) {
+    loginDiv.style.display = 'none';
+    vmContainer.style.display = 'block';
+    userInfoDiv.textContent = `Logged in as ${user.displayName} (${user.emails[0].value})`;
+
+    // Create or get session
+    const res = await fetch(`${API_BASE}/api/create-session`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      alert('Failed to create Hyperbeam session.');
+      return;
+    }
+    const data = await res.json();
+    vmFrame.src = data.sessionUrl;
+  }
+
+  loginBtn.onclick = () => {
+    window.location.href = `${API_BASE}/auth/google`;
+  };
+
+  logoutBtn.onclick = async () => {
+    await fetch(`${API_BASE}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    vmFrame.src = '';
+    showLogin();
+  };
+
+  checkLogin();
+</script>
+
+</body>
+</html>
